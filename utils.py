@@ -1,7 +1,6 @@
 #!/bin/usr/python3
 import os
 import yaml
-import pytest
 
 def loadYaml(filePath):
   with open(filePath, "r") as stream:
