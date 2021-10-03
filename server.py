@@ -2,6 +2,8 @@ import os
 import sys
 import yaml
 from flask import Flask, request, render_template, send_file, redirect, send_from_directory
+
+import source # take a look in source/__init__.py
 from brewSensor import BCM600Sensor, DHT11Sensor, BrewSensor
 from brewCamera import BrewCamera
 from brewRelay import BrewRelay

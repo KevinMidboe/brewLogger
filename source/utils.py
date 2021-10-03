@@ -12,7 +12,7 @@ def loadYaml(filePath):
 
 def getConfig():
   pwd = os.path.dirname(os.path.abspath(__file__))
-  path = os.path.join(pwd, 'config.yaml')
+  path = os.path.join(pwd,'../', 'config.yaml')
 
   if not os.path.isfile(path):
     print('Please fill out and rename config file. Check README for more info.')

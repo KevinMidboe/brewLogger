@@ -183,7 +183,8 @@ class BCM600Sensor(BrewSensor):
 
 
 if __name__ == '__main__':
-    brewSensor = DHT11Sensor(13, 'outside', 30)
+#    brewSensor = DHT11Sensor(13, 'outside', 30)
+    brewSensor = BCM600Sensor('inside', 2) 
 
     while True:
         print(brewSensor.temp)
