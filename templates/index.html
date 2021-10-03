@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="Brewpi icon" href="/favicon.ico">
+  <title>Brewpi</title>
+</head>
+
+<body>
+  <div class="header-containers">
+    <div>
+      <h1>Brewpi</h1>
+    
+      {% for sensor in sensors %}
+      	<p>{{ sensor.location }} temp: {{ sensorTemp(sensor.location) }}&#176;C</p>
+      {% endfor %}
+    
+      {% for relay in relays %}
+      <form action="/toggle/{{ relay.controls }}" method="post">
+        <p>{{ relay.controls }} relay is: <b>{{ relay.state }}</b></p>
+	<button type="submit">Toggle {{ relay.controls }}</button>
+      </form>
+      {% endfor %}
+    </div>
+    
+    <div>
+      <h2><i>Live</i> brew-feed</h2>
+   
+      <i style="display: block">Updates every {{ captureInterval }} seconds or on relay toggle</i>
+  
+      <img src="{{url_for('assets', filename='capture.jpg')}}" />
+    </div>
+  </div>
+
+  <div>
+    <h2>Graphs</h2>
+
+    <iframe style="width: 100%" src="https://kibana.schleppe.cloud/app/dashboards#/view/94460c50-1c9b-11ec-a070-f3f228e227b1?embed=true&_g=(filters%3A!()%2CrefreshInterval%3A(pause%3A!t%2Cvalue%3A0)%2Ctime%3A(from%3Anow-24h%2Cto%3Anow))&show-time-filter=true&hide-filter-bar=true" height="920" ></iframe>
+  </div>
+</body>
+
+</html>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;600&display=swap');
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  padding: 0.5rem;
+}
+
+h1 {
+  font-weight: 600;
+}
+
+.header-containers {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  margin-bottom: 1rem;
+}
+
+button {
+  font-size: 1.2rem;
+  background-color: #0079D3;
+  -webkit-appearance: none;
+  border-radius: 5px;
+  border: none;
+  padding: 0.5rem;
+  color: white;
+  transition: transform 0.3s ease;
+}
+
+button:hover {
+  transform: scale(1.1);
+}
+
+img {
+  width: 100%;
+  max-width: 750px;
+}
+
+@media (max-width: 600px) {
+  img {
+    width: 100%;
+  }
+
+  .header-containers {
+    grid-template-columns: 1fr;
+  }
+}
+
+</style>
