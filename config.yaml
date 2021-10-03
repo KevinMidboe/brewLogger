@@ -1,0 +1,11 @@
+logger:
+  name: brewlogger
+  ch_level: INFO
+
+elastic:
+  host: elastic.schleppe
+  port: 9200
+  ssl: True
+
+database:
+  name: brew.db
