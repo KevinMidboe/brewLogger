@@ -4,7 +4,7 @@ import yaml
 from flask import Flask, request, render_template, send_file, redirect, send_from_directory
 
 import source # take a look in source/__init__.py
-from brewSensor import BCM600Sensor, DHT11Sensor, BrewSensor
+from brewSensor import BME680Sensor, DHT11Sensor, BrewSensor
 from brewCamera import BrewCamera
 from brewRelay import BrewRelay
 
@@ -14,7 +14,7 @@ brewCamera = BrewCamera(20)
 def readYaml(filePath):
   loader = yaml.SafeLoader
   loader.add_constructor('!Relay', BrewRelay.fromYaml)
-  loader.add_constructor('!bcm600', BCM600Sensor.fromYaml)
+  loader.add_constructor('!bme680', BME680Sensor.fromYaml)
   loader.add_constructor('!dht11', DHT11Sensor.fromYaml)
   return yaml.load(open(filePath, "rb"), Loader=loader)
 

@@ -75,7 +75,7 @@ class DHT11Sensor(BrewSensor):
     def fromYaml(loader, node):
         return DHT11Sensor(**loader.construct_mapping(node))
 
-class BCM600Sensor(BrewSensor):
+class BME680Sensor(BrewSensor):
     def __init__(self, location, interval):
         super().__init__(location, interval)
 
@@ -176,7 +176,7 @@ class BCM600Sensor(BrewSensor):
 
     @staticmethod
     def fromYaml(loader, node):
-        return BCM600Sensor(**loader.construct_mapping(node))
+        return BME680Sensor(**loader.construct_mapping(node))
 
     def __repr__(self):
         return "{0:.2f} C,{1:.2f} hPa,{2:.2f} %RH".format(self.temp, self.pressure, self.humidity)
@@ -184,7 +184,7 @@ class BCM600Sensor(BrewSensor):
 
 if __name__ == '__main__':
 #    brewSensor = DHT11Sensor(13, 'outside', 30)
-    brewSensor = BCM600Sensor('inside', 2) 
+    brewSensor = BME680Sensor('inside', 2)
 
     while True:
         print(brewSensor.temp)

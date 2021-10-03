@@ -11,7 +11,7 @@ relays:
   pin: 24
 
 sensors:
-- !bcm600
+- !bme680
   location: inside
   interval: 2
 
