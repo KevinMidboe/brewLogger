@@ -1,0 +1,23 @@
+---
+relays:
+- !Relay
+  controls: cooling
+  pin: 14
+- !Relay
+  controls: heating
+  pin: 23
+- !Relay
+  controls: light
+  pin: 24
+
+sensors:
+- !bcm600
+  location: inside
+  interval: 2
+
+- !dht11
+  pin: 13
+  location: outside
+  interval: 30
+
+
