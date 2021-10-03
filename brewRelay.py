@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 from logger import logger
+from utils import getConfig
 import sqlite3
 
 class BrewRelay():
@@ -8,7 +9,8 @@ class BrewRelay():
         self.pin = pin
         self.controls = controls
 
-        self.conn = sqlite3.connect('brew.db', check_same_thread=False)
+        config = getConfig()
+        self.conn = sqlite3.connect(config['database']['name'], check_same_thread=False)
         self.cur = self.conn.cursor()
 
         GPIO.setup(self.pin, GPIO.OUT)
