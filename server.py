@@ -8,6 +8,9 @@ from brewSensor import BrewSensor
 from brewRelay import BrewRelay
 import source.loader as loader
 
+def isItInArgv(it):
+    return it in sys.argv
+
 app = Flask(__name__)
 brewCamera = BrewCamera(20)
 
@@ -15,7 +18,7 @@ externalPeripherals = loader.load('brew.yaml')
 sensors = externalPeripherals['sensors']
 relays = externalPeripherals['relays']
 
-if sys.argv[-1] == '-c':
+if isItInArgv('-d') or isItInArgv('--daemon'):
     brewCamera.spawnBackgroundCapture()
 
     for sensor in sensors:
