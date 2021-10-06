@@ -58,18 +58,18 @@ class DHT11Sensor(BrewSensor):
         logger.info("spawned background sensor {} log at interval: {}".format(self.location, self.interval))
 
     def logSensorOnIntervalForever(self):
-        try:
-            self.logReadings()
-        except RuntimeError as error:
-            logger.error('Sensor log daemon failed, sleeping and trying again', es={
-                'location': self.location,
-                'error': str(error),
-                'exception': error.__class__.__name__
-            })
-            time.sleep(2)
+        while True:
+            try:
+                self.logReadings()
+            except Exception as error:
+                logger.error('Sensor log daemon failed, sleeping and trying again', es={
+                    'location': self.location,
+                    'error': str(error),
+                    'exception': error.__class__.__name__
+                })
+                time.sleep(2)
 
-        time.sleep(self.interval)
-        self.logSensorOnIntervalForever()
+            time.sleep(self.interval)
 
     @staticmethod
     def fromYaml(loader, node):
@@ -88,16 +88,16 @@ class BME680Sensor(BrewSensor):
         self.sensor.set_pressure_oversample(bme680.OS_4X)
         self.sensor.set_temperature_oversample(bme680.OS_8X)
         self.sensor.set_filter(bme680.FILTER_SIZE_3)
-		
+
         self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
         self.sensor.set_gas_heater_temperature(320)
         self.sensor.set_gas_heater_duration(150)
         self.sensor.select_gas_heater_profile(0)
-    
+
     def read(self):
         self.lastSensorRead = time.time()
         return self.sensor.get_sensor_data()
-    
+
     def logReadings(self, detailed):
         if self.needToUpdateReadings:
             self.read()
@@ -127,18 +127,18 @@ class BME680Sensor(BrewSensor):
         logger.info("spawned background sensor {} log at interval: {}".format(self.location, self.interval))
 
     def logSensorOnIntervalForever(self):
-        try:
-            self.logReadings(detailed=True)
-        except exception as error:
-            logger.error('Sensor log daemon failed, sleeping and trying again', es={
-                'location': self.location,
-                'error': str(error),
-                'exception': error.__class__.__name__
-            })
-            time.sleep(2)
+        while True:
+            try:
+                self.logReadings(detailed=True)
+            except Exception as error:
+                logger.error('Sensor log daemon failed, sleeping and trying again', es={
+                    'location': self.location,
+                    'error': str(error),
+                    'exception': error.__class__.__name__
+                })
+                time.sleep(2)
 
-        time.sleep(self.interval)
-        self.logSensorOnIntervalForever()
+            time.sleep(self.interval)
 
     @property
     def needToUpdateReadings(self):
