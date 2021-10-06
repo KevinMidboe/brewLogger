@@ -1,26 +1,19 @@
 import os
 import sys
-import yaml
 from flask import Flask, request, render_template, send_file, redirect, send_from_directory
 
 import source # take a look in source/__init__.py
-from brewSensor import BME680Sensor, DHT11Sensor, BrewSensor
 from brewCamera import BrewCamera
+from brewSensor import BrewSensor
 from brewRelay import BrewRelay
+import source.loader as loader
 
 app = Flask(__name__)
 brewCamera = BrewCamera(20)
 
-def readYaml(filePath):
-  loader = yaml.SafeLoader
-  loader.add_constructor('!Relay', BrewRelay.fromYaml)
-  loader.add_constructor('!bme680', BME680Sensor.fromYaml)
-  loader.add_constructor('!dht11', DHT11Sensor.fromYaml)
-  return yaml.load(open(filePath, "rb"), Loader=loader)
-
-rangers = readYaml('brew.yaml')
-sensors = rangers['sensors']
-relays = rangers['relays']
+externalPeripherals = loader.load('brew.yaml')
+sensors = externalPeripherals['sensors']
+relays = externalPeripherals['relays']
 
 if sys.argv[-1] == '-c':
     brewCamera.spawnBackgroundCapture()
