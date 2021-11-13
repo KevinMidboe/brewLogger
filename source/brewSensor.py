@@ -79,20 +79,27 @@ class BME680Sensor(BrewSensor):
     def __init__(self, location, interval):
         super().__init__(location, interval)
 
-        self.sensor = bme680.BME680()
-        self.sensor.set_humidity_oversample(bme680.OS_2X)
         self.setupSensors()
         self.lastSensorRead = time.time()
 
     def setupSensors(self):
-        self.sensor.set_pressure_oversample(bme680.OS_4X)
-        self.sensor.set_temperature_oversample(bme680.OS_8X)
-        self.sensor.set_filter(bme680.FILTER_SIZE_3)
+        try:
+            self.sensor = bme680.BME680()
+            self.sensor.set_humidity_oversample(bme680.OS_2X)
+            self.sensor.set_pressure_oversample(bme680.OS_4X)
+            self.sensor.set_temperature_oversample(bme680.OS_8X)
+            self.sensor.set_filter(bme680.FILTER_SIZE_3)
 
-        self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
-        self.sensor.set_gas_heater_temperature(320)
-        self.sensor.set_gas_heater_duration(150)
-        self.sensor.select_gas_heater_profile(0)
+            self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
+            self.sensor.set_gas_heater_temperature(320)
+            self.sensor.set_gas_heater_duration(150)
+            self.sensor.select_gas_heater_profile(0)
+        except RuntimeError as error:
+            logger.error('Sensor not found!', es={
+                'location': self.location,
+                'error': str(error),
+                'exception': error.__class__.__name__
+            })
 
     def read(self):
         self.lastSensorRead = time.time()

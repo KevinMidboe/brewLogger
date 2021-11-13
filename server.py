@@ -22,7 +22,10 @@ if isItInArgv('-d') or isItInArgv('--daemon'):
     brewCamera.spawnBackgroundCapture()
 
     for sensor in sensors:
-        sensor.spawnBackgroundSensorLog()
+        try:
+            sensor.spawnBackgroundSensorLog()
+        except Error as error:
+            print('Error while spawning sensor background task:', error)
 
 def sensorTemp(location):
     sensor = BrewSensor.getSensorByItsLocation(sensors, location)
