@@ -41,8 +41,8 @@ class BrewCamera():
 
         except picamera.exc.PiCameraMMALError as error:
             logger.error('Picamera MMAL exception. Retrying picture in 1 second', es={
-                error: str(error),
-                exception: error.__class__.__name__
+                'error': str(error),
+                'exception': error.__class__.__name__
             })
             time.sleep(1)
             self.capture()
