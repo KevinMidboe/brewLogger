@@ -7,12 +7,13 @@ import uuid
 from datetime import datetime, date
 import urllib.request
 
-from utils import getConfig
+from utils import getConfig, timezoneOffset
 
 config = getConfig()
 LOGGER_NAME = config['logger']['name']
 esHost = config['elastic']['host']
 esPort = config['elastic']['port']
+systemTimezone = timezoneOffset()
 
 class ESHandler(logging.Handler):
   def __init__(self, *args, **kwargs):
@@ -25,7 +26,8 @@ class ESHandler(logging.Handler):
 
   def emit(self, record):
     self.format(record)
-    timestamp = datetime.fromtimestamp(record.created).strftime('%Y-%m-%dT%H:%M:%S.%f+02:00')
+    datetimeTemplate = '%Y-%m-%dT%H:%M:%S.%f{}'.format(systemTimezone)
+    timestamp = datetime.fromtimestamp(record.created).strftime(datetimeTemplate)
 
     indexURL = 'http://{}:{}/{}-{}/_doc'.format(self.host, self.port, LOGGER_NAME, self.date.strftime('%Y.%m.%d'))
 
