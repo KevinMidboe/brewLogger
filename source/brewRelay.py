@@ -15,7 +15,7 @@ except ModuleNotFoundError as error:
 
 class BrewRelay():
     def __init__(self, pin, controls):
-        GPIO.setmode(GPIO.BOARD)
+        GPIO.setmode(GPIO.BCM)
         self.pin = pin
         self.controls = controls
 
