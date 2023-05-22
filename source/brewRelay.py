@@ -23,6 +23,14 @@ class BrewRelay():
 
         return True if self.cur.fetchone()[0] == 1 else False
 
+    @property
+    def info(self):
+        return {
+            'location': self.controls,
+            'pin': self.pin,
+            'state': self.state
+        }
+
     def saveStateToDB(self, state):
         query = 'update relay set state = {} where pin = {}'
         self.cur.execute(query.format(state, self.pin))
@@ -46,6 +54,10 @@ class BrewRelay():
 
     @staticmethod
     def getRelayByWhatItControls(relays, controls):
+        return next(( relay for relay in relays if relay.controls == controls), None)
+
+    @staticmethod
+    def getRelayByName(relays, controls):
         return next(( relay for relay in relays if relay.controls == controls), None)
 
     def __exit__(self):

@@ -72,8 +72,16 @@ class DHT11Sensor(BrewSensor):
             time.sleep(self.interval)
 
     @staticmethod
-    def fromYaml(loader, node):
-        return DHT11Sensor(**loader.construct_mapping(node))
+    def getSensorByItsLocation(sensors, location):
+        return next(( sensor for sensor in sensors if sensor.location == location), None)
+
+    @property
+    def info(self):
+        return {
+            'temperature': "{0:.2f} °C".format(self.temp),
+            'humidity': "{0:.2f} %RH".format(self.humidity),
+            'location': self.location
+        }
 
 class BME680Sensor(BrewSensor):
     def __init__(self, location, interval):
