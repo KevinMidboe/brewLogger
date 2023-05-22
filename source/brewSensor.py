@@ -146,7 +146,7 @@ class DHT11Sensor(BrewSensor):
     @property
     def temp(self):
         try:
-            self.temperature = self.sensor.temperature
+            self.temperature = self.sensor.temperature or self.temperature
             return self.temperature
         except RuntimeError as error:
             telemetry = {
