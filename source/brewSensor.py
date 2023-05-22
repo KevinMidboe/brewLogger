@@ -36,11 +36,21 @@ class BrewSensor():
 
     @property
     def info(self):
-        return {
-            'temperature': "{0:.2f} °C".format(self.temp),
-            'humidity': "{0:.2f} %RH".format(self.humidity),
-            'location': self.location
+        data = {
+            'location': self.location,
+            'temperature': "{0:.2f}".format(self.temp),
+            'temperature_unit': "°C"
         }
+
+        if hasattr(self, 'humidity'):
+            data['humidity'] = "{0:.2f}".format(self.humidity)
+            data['humidity_unit'] = "%RH"
+
+        if hasattr(self, 'pressure'):
+            data['pressure'] = "{0:.2f}".format(self.pressure)
+            data['pressure_unit'] = "bar"
+
+        return data
 
 class BME680Sensor(BrewSensor):
     def __init__(self, location, interval):
