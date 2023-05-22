@@ -4,76 +4,70 @@ from datetime import datetime, timedelta
 
 # local packages
 import source
+import loader as loader
+from brewSensor import BrewSensor
+from brewRelay import BrewRelay
+
 from logger import logger
 
 '''
 We want to also track the time heating and cooling
 time delta pr scale unit.
 
+NOTES
 
-When we pool:
- Temp too high, if relay is:
-  - on  --> keep off
-  - off --> turn off
- Temp too low, if relay is:
-  - on  --> keep on
-  - off --> turn on
+This is not realtime critical so to limit interaction with sensor
+we pool it on a interval and save it as `currentTemp`.
 
- Relay is on, temp is:
-  - low  --> keep on
-  - high --> turn off
- relay is off, temp is:
-  - low  --> keep off
-  - high --> turn on
 '''
 
 class BrewRegulator():
-  def __init__(self, temperatureSensor, coldRelay, hotRelay, temperatureGoal, degreesAllowedToDrift, interval=60, cooldown=600):
-    self.interval = interval
-    self.cooldown = cooldown
-    self.nextStateChangeAfter = datetime.now()
-
-    self.isGoalMet = False
-    self.state = 'heating'
-    self.cooling = coldRelay
-    self.heating = hotRelay
+  def __init__(self, temperatureSensor, coolingRelay, heatRelay, temperatureGoal, degreesAllowedToDrift, poolingInterval=60):
+    self.currentTemp = 0
+    self.poolingInterval = poolingInterval
+    self.cooling = coolingRelay
+    self.heating = heatRelay
     self.temperatureSensor = temperatureSensor
     self.temperatureGoal = temperatureGoal
     self.degreesAllowedToDrift = degreesAllowedToDrift
 
     self.secondsToDriftSingleDegree = 600
 
-    self.thread = threading.Thread(target=self.captureOnIntervalForever, args=())
-    self.thread.daemon = True
+    self.poolTemperatureSensorThread = threading.Thread(target=self.poolTemperatureSensorOnInterval, args=())
+    self.poolTemperatureSensorThread.daemon = True
 
-  def start(self):
-    self.thread.start()
+  def poolTemperatureSensorOnInterval(self):
+    logger.info('Starting thread pooling temperature sensor', es={ 'timeout': self.poolingInterval })
+    while True:
+      self.currentTemp = self.temperatureSensor.temp;
+      time.sleep(self.poolingInterval);
 
-  '''
-  states: heating | cooling | idle
-  regulation technique: correction | goal based
-
-  We get a new goal: 18 deg
-
-  Blackbox state() --> Read sensor and decide
-  If blackboxState is not current state:
-  update regulation tech.
-
-
-  Get cooldown time based on delta and histogram for temperature interval
-  '''
+  def waitForTempReading(self):
+    while self.currentTemp == 0:
+      time.sleep(0.5)
 
   @property
   def withinDeviationLimit(self):
     return abs(self.temperatureGoal - self.currentTemp) < self.degreesAllowedToDrift
 
-  def checkGoal(self):
-    if self.state == 'cooling' and self.currentTemp <= self.temperatureGoal:
-      return True
-    elif self.state == 'heating' and self.currentTemp >= self.temperatureGoal:
-      return True
+  @property
+  def hasMetTemperatureGoal(self):
+    # Given state check if we are still chasing or goal is met.
+    if self.state == 'cooling' and self.shouldCool:
+      return False
+    elif self.state == 'heating' and self.shouldHeat:
+      return False
 
-    return False
+    return True
+
+  @property
+  def state(self):
+    if self.heating.state is True:
+      return 'heating'
+    elif self.cooling.state is True:
+      return 'cooling'
+    else:
+      return 'idle'
 
   @property
   def shouldCool(self):
@@ -83,116 +77,128 @@ class BrewRegulator():
   def shouldHeat(self):
     return self.currentTemp < self.temperatureGoal
 
-  def sleepRelativToOffset(self):
-    diff = abs(self.temperatureGoal - self.currentTemp)
-    temperatureRelativeTimeout = self.interval * diff
-    print('sleeping: {}, diff: {}'.format(temperatureRelativeTimeout, diff))
-    time.sleep(temperatureRelativeTimeout)
+  def setHeating(self, state):
+    # Set heating relay if not already
+    if self.heating.state is not state:
+      self.heating.set(state)
 
+    # Reset cooling if on
+    if self.cooling.state is True:
+      self.cooling.set(False)
+
+  def setCooling(self, state):
+    # Set cooling relay if not already
+    if self.cooling.state is not state:
+      self.cooling.set(state)
+
+    # Reset heating if on
+    if self.heating.state is True:
+      self.heating.set(False)
+
+  def turnOnTemperatureControl(self):
+    if self.shouldCool:
+      self.setCooling(True)
+    elif self.shouldHeat:
+      self.setHeating(True)
+
+    logger.info('Updated fridge state', es={ 'state': self.state })
+
+  def turnOffTemperatureControl(self):
+    if self.heating.state is True:
+      self.heating.set(False)
+
+    if self.cooling.state is True:
+      self.cooling.set(False)
+
+    logger.info('Updated fridge state', es={ 'state': self.state })
+
+  # Turns on temperature control and waits until hit goal temperature
   def chaseTemperature(self):
     isGoalMet = False
-    if self.shouldCool:
-      self.setCooling()
-    elif self.shouldHeat:
-      self.setHeating()
+    self.turnOnTemperatureControl()
 
     while not isGoalMet:
-      self.readAndPrint()
-
-      if not self.checkGoal():
-        print("Chasing goal, but sleeping")
-        time.sleep(5)
-      else:
-        print("Temperature met, turning all off and returning")
+      if self.hasMetTemperatureGoal:
+        logger.info("Temperature met, idling", es={
+          'temperature': self.currentTemp,
+          'goal': self.temperatureGoal
+        })
         isGoalMet = True
-        if self.state == 'cooling':
-          self.cooling.set(False)
-        elif self.state == 'heating':
-          self.heating.set(False)
+      else:
+        logger.info("Chasing temperature goal", es={
+            'state': self.state,
+            'temperature': self.currentTemp,
+            'goal': self.temperatureGoal
+        })
+        time.sleep(self.poolingInterval)
+
+    self.turnOffTemperatureControl()
 
   def temperatureLossFunction(self):
+    # return 6
     return self.degreesAllowedToDrift * self.secondsToDriftSingleDegree
 
   def sustainTemperature(self):
-    print('Sustaining temperature')
-    self.readAndPrint()
+    timeout = self.temperatureLossFunction()
 
-    if self.currentTemp < self.temperatureGoal - self.degreesAllowedToDrift:
-      self.cooling.set(True)
-      coolingProperty = 30
-      print('Cooling turned on! Turning off in {} seconds'.format(coolingProperty))
-      time.sleep(coolingProperty)
-      self.cooling.set(False)
-      print('Cooling turned off')
+    logger.info('Sustaining temperature', es={
+        'state': self.state,
+        'temperature': self.currentTemp,
+        'goal': self.temperatureGoal,
+        'timeout': timeout
+    })
 
-    elif self.currentTemp > self.temperatureGoal + self.degreesAllowedToDrift:
-      self.heating.set(True)
-      heatingProperty = 120
-      print('Heating turned on! Turning off in {} seconds'.format(heatingProperty))
-      time.sleep(heatingProperty)
-      self.heating.set(False)
-      print('Heating turned off')
+    time.sleep(timeout)
 
-    estimatedTimeout = self.temperatureLossFunction()
-    print('Allowed drift {}, estimated timeout: {}'.format(self.degreesAllowedToDrift, estimatedTimeout))
-    time.sleep(estimatedTimeout)
+  def regulateTemperatureTowardsGoal(self):
+    while True:
+      # print('sleeping {}\n- - - - -'.format(self.cooldown))
+      if self.withinDeviationLimit:
+          self.sustainTemperature()
+      else:
+          self.chaseTemperature()
 
+RELAYS = []
+def gracefullyTurnOffRelays():
+  for relay in RELAYS:
+    if relay.state is True:
+      relay.set(False)
 
-  def setCooling(self):
-    print('should cool')
-    self.state = 'cooling'
-    self.heating.set(False)
-    self.cooling.set(True)
+def main():
+  externalPeripherals = loader.load('brew.yaml')
+  sensors = externalPeripherals['sensors']
+  relays = externalPeripherals['relays']
 
-  def setHeating(self):
-    print('should heat')
-    self.state = 'heating'
-    self.heating.set(True)
-    self.cooling.set(False)
+  # Sensor import and background logging
+  insideSensor = BrewSensor.getSensorByItsLocation(sensors, 'inside')
+  outsideSensor = BrewSensor.getSensorByItsLocation(sensors, 'outside')
+  for sensor in [insideSensor, outsideSensor]:
+    sensor.spawnBackgroundSensorLog()
 
-  def readAndPrint(self):
-    self.currentTemp = self.temperatureSensor.temp
-    print('current temp: {}, goal: {}'.format(self.currentTemp, self.temperatureGoal))
-    print('cold state:', self.cooling.state)
-    print('hot state:', self.heating.state)
+  # Relay import and append to list for gracefull shutdown
+  coolingRelay = BrewRelay.getRelayByWhatItControls(relays, 'cooling')
+  heatRelay = BrewRelay.getRelayByWhatItControls(relays, 'heating')
+  RELAYS.extend([coolingRelay, heatRelay])
 
-  def poolSensorAndSetRelay(self):
-    self.readAndPrint()
-    if not self.withinDeviationLimit:
-        self.chaseTemperature()
-    else:
-        self.sustainTemperature()
-
-  def captureOnIntervalForever(self):
-    try:
-      while True:
-        self.poolSensorAndSetRelay()
-
-        print('sleeping {}'.format(self.interval))
-        print('- - - - -')
-        time.sleep(self.interval)
-    except Error as error:
-      logger.error('Regulator crashed!', es={
-        'error': str(error),
-        'exception': error.__class__.__name__
-      })
-
+  # temp sensor : cooling relay : heat relay : goal temp : deviation limit : pooling interval : timeout
+  regulator = BrewRegulator(insideSensor, coolingRelay, heatRelay, 5, 0.5, 5)
+  regulator.poolTemperatureSensorThread.start()
+  regulator.waitForTempReading()
+  regulator.regulateTemperatureTowardsGoal()
 
 if __name__ == '__main__':
-    import source
-    import source.loader as loader
-    from source.brewSensor import BrewSensor
-    from source.brewRelay import BrewRelay
+  try:
+    main()
+  except Exception as error:
+    logger.error("Regulator crashed! Turning Off all relays.", es={
+      'error': str(error),
+      'exception': error.__class__.__name__
+    })
 
-    externalPeripherals = loader.load('brew.yaml')
-    sensors = externalPeripherals['sensors']
-    relays = externalPeripherals['relays']
+    gracefullyTurnOffRelays()
+    raise error
+  except KeyboardInterrupt as error:
+    logger.info("Keyboard interrupt! Turning Off all relays.")
 
-    insideSensor = BrewSensor.getSensorByItsLocation(sensors, 'inside')
-
-    coldRelay = BrewRelay.getRelayByWhatItControls(relays, 'cooling')
-    hotRelay = BrewRelay.getRelayByWhatItControls(relays, 'heating')
-
-    regulator = BrewRegulator(insideSensor, coldRelay, hotRelay, 18, 0.5, 10, 60)
-    regulator.captureOnIntervalForever()
-
+    gracefullyTurnOffRelays()
+    raise error
