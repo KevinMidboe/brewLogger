@@ -11,13 +11,16 @@ relays:
   pin: 24
 
 sensors:
-- !bme680
+- !mockSensor
+  pin: 15
   location: inside
   interval: 2
 
-- !dht11
-  pin: 13
-  location: outside
-  interval: 30
+# - !bme680
+#   location: inside
+#   interval: 2
 
-
+# - !dht11
+#   pin: 13
+#   location: outside
+#   interval: 30

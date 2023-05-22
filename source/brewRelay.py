@@ -1,11 +1,21 @@
-import RPi.GPIO as GPIO
+from __init__ import mock
+
 from logger import logger
 from utils import getConfig
 import sqlite3
 
+try:
+    import RPi.GPIO as GPIO
+except ModuleNotFoundError as error:
+    if mock is True:
+        from mockGPIO import MockGPIO as GPIO
+        pass
+    else:
+        raise error
+
 class BrewRelay():
     def __init__(self, pin, controls):
-#        GPIO.setmode(GPIO.BOARD)
+        GPIO.setmode(GPIO.BOARD)
         self.pin = pin
         self.controls = controls
 
@@ -62,13 +72,4 @@ class BrewRelay():
 
     def __exit__(self):
         self.conn.close()
-
-if __name__ == '__main__':
-    brewRelay = BrewRelay()
-
-    import time
-    while True:
-        print('toggling!')
-        brewRelay.toggle()
-        time.sleep(1)
 
