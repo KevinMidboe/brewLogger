@@ -1,5 +1,6 @@
 # local ignore files
-
+brew.yaml
+config.yaml
 brew.db
 assets/capture.jpg
 
