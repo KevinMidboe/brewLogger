@@ -3,9 +3,10 @@ logger:
   ch_level: INFO
 
 elastic:
-  host: elastic.schleppe
+  host: ELASTIC_IP_ADDRESS
   port: 9200
   ssl: True
+  api_key: ELASTIC_API_KEY
 
 database:
   name: brew.db

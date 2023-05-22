@@ -11,14 +11,13 @@ from utils import getConfig, timezoneOffset
 
 config = getConfig()
 LOGGER_NAME = config['logger']['name']
-esHost = config['elastic']['host']
-esPort = config['elastic']['port']
 systemTimezone = timezoneOffset()
 
 class ESHandler(logging.Handler):
   def __init__(self, *args, **kwargs):
     self.host = kwargs.get('host')
     self.port = kwargs.get('port') or 9200
+    self.apiKey = kwargs.get('apiKey')
     self.date = date.today()
     self.sessionID = uuid.uuid4()
 
@@ -29,7 +28,11 @@ class ESHandler(logging.Handler):
     datetimeTemplate = '%Y-%m-%dT%H:%M:%S.%f{}'.format(systemTimezone)
     timestamp = datetime.fromtimestamp(record.created).strftime(datetimeTemplate)
 
-    indexURL = 'http://{}:{}/{}-{}/_doc'.format(self.host, self.port, LOGGER_NAME, self.date.strftime('%Y.%m.%d'))
+    indexURL = 'http://{}:{}/{}-{}/_doc'.format(self.host, self.port, LOGGER_NAME, self.date.strftime('%Y.%m'))
+    headers = { 'Content-Type': 'application/json', 'User-Agent': 'brewpi-server' }
+
+    if self.apiKey:
+      headers['Authorization'] = 'ApiKey {}'.format(self.apiKey)
 
     doc = {
       'severity': record.levelname,
@@ -46,8 +49,7 @@ class ESHandler(logging.Handler):
       doc = {**record.es, **doc}
 
     payload = json.dumps(doc).encode('utf8')
-    req = urllib.request.Request(indexURL, data=payload,
-                                 headers={'content-type': 'application/json'})
+    req = urllib.request.Request(indexURL, data=payload, headers=headers)
     response = urllib.request.urlopen(req)
     response = response.read().decode('utf8')
     return response
@@ -70,12 +72,13 @@ logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.WARNING)
 
-eh = ESHandler(host=esHost, port=esPort)
+esHost = config['elastic']['host']
+esPort = config['elastic']['port']
+esApiKey = config['elastic']['api_key']
+eh = ESHandler(host=esHost, port=esPort, apiKey=esApiKey)
 eh.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter('%(asctime)s %(levelname)8s | %(message)s')
 logger.addHandler(ch)
 logger.addHandler(eh)
 logger = ElasticFieldParameterAdapter(logger)
-
-
