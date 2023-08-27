@@ -8,6 +8,10 @@ class MockGPIO():
     return True
 
   @property
+  def BCM():
+    return True
+
+  @property
   def OUT():
     return True
 
