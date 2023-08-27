@@ -4,6 +4,9 @@ from random import uniform
 
 from logger import logger
 
+'''
+Generic sensor class that should always be extended.
+'''
 class BrewSensor():
     def __init__(self, location, interval=2):
         self.location = location
@@ -79,6 +82,7 @@ class BME680Sensor(BrewSensor):
                 'error': str(error),
                 'exception': error.__class__.__name__
             })
+            raise error
 
     def read(self):
         self.lastSensorRead = time.time()
@@ -194,7 +198,7 @@ class MockSensor(BrewSensor):
 
     @property
     def temp(self):
-        temp = self.lastTemp + uniform(-0.25, 0.25)
+        temp = round(self.lastTemp + uniform(-0.25, 0.25), 2)
 
         if self.location == 'inside':
             if temp > 10 or temp < 2:
@@ -208,7 +212,7 @@ class MockSensor(BrewSensor):
 
     @property
     def humidity(self):
-        return uniform(80, 99)
+        return round(uniform(80, 99), 2)
 
     def logReadings(self):
         telemetry = {
