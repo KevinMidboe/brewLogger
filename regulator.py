@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 # local packages
 import source
+import commandlineArguments
 import loader as loader
 from brewSensor import BrewSensor
 from brewRelay import BrewRelay
@@ -165,12 +166,20 @@ def gracefullyTurnOffRelays():
       relay.set(False)
 
 def main():
+  args = commandlineArguments.parse()
+  temp = args.temp
+  limit = args.limit
+  interval = args.interval
+
   externalPeripherals = loader.load('brew.yaml')
   sensors = externalPeripherals['sensors']
   relays = externalPeripherals['relays']
 
   # Sensor import and background logging
   insideSensor = BrewSensor.getSensorByItsLocation(sensors, 'inside')
+  if insideSensor is None:
+    raise Exception('Missing inside temperature sensor, nothing to do')
+
   outsideSensor = BrewSensor.getSensorByItsLocation(sensors, 'outside')
   for sensor in [insideSensor, outsideSensor]:
     sensor.spawnBackgroundSensorLog()
@@ -180,8 +189,8 @@ def main():
   heatRelay = BrewRelay.getRelayByWhatItControls(relays, 'heating')
   RELAYS.extend([coolingRelay, heatRelay])
 
-  # temp sensor : cooling relay : heat relay : goal temp : deviation limit : pooling interval : timeout
-  regulator = BrewRegulator(insideSensor, coolingRelay, heatRelay, 5, 0.5, 5)
+  # Regulator takes a inside temp, relays, temp and regulating values
+  regulator = BrewRegulator(insideSensor, coolingRelay, heatRelay, temp, limit, interval)
   regulator.poolTemperatureSensorThread.start()
   regulator.waitForTempReading()
   regulator.regulateTemperatureTowardsGoal()
