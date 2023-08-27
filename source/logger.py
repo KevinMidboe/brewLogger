@@ -4,6 +4,7 @@ import logging
 import os
 import json
 import uuid
+import argparse
 from datetime import datetime, date
 import urllib.request
 
@@ -55,7 +56,7 @@ class ESHandler(logging.Handler):
     return response
 
 class ElasticFieldParameterAdapter(logging.LoggerAdapter):
-  def __init__(self, logger, extra={}):
+  def __init__(self, logger: logging.LogRecord, extra={}):
     super().__init__(logger, extra)
 
   def process(self, msg, kwargs):
@@ -66,19 +67,46 @@ class ElasticFieldParameterAdapter(logging.LoggerAdapter):
     kwargs["extra"] = extra
     return (msg, kwargs)
 
+class ElasticOptionalFormatter(logging.Formatter):
+  def format(self, record: logging.LogRecord) -> str:
+    # Check if the parameter is present in the log record
+    if hasattr(record, 'es'):
+      # Format the log message with the parameter
+      record.msg = f'{record.msg} | {record.es}'
+    return super().format(record)
+
+# General logger setup
+formatter = ElasticOptionalFormatter('%(asctime)s | %(levelname)2s | %(message)s')
 logger = logging.getLogger(LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
 
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument('--logfile', type=argparse.FileType('w'))
+parser.add_argument('--debug', action='store_true')
+[args, kwargs] = parser.parse_known_args()
+
+# Stream handler
 ch = logging.StreamHandler()
 ch.setLevel(logging.WARNING)
-
-esHost = config['elastic']['host']
-esPort = config['elastic']['port']
-esApiKey = config['elastic']['api_key']
-eh = ESHandler(host=esHost, port=esPort, apiKey=esApiKey)
-eh.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(asctime)s %(levelname)8s | %(message)s')
+ch.setFormatter(formatter)
 logger.addHandler(ch)
-logger.addHandler(eh)
+if args.debug:
+  ch.setLevel(logging.DEBUG)
+
+# File handler
+if args.logfile:
+  fh = logging.FileHandler(args.logfile.name, mode='a', encoding='utf-8')
+  fh.setFormatter(formatter)
+  logger.addHandler(fh)
+
+# Elastic handler
+if config['elastic']['enabled']:
+  esHost = config['elastic']['host']
+  esPort = config['elastic']['port']
+  esApiKey = config['elastic']['api_key']
+
+  eh = ESHandler(host=esHost, port=esPort, apiKey=esApiKey)
+
+  logger.addHandler(eh)
+
 logger = ElasticFieldParameterAdapter(logger)
