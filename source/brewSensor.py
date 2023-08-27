@@ -57,14 +57,14 @@ class BrewSensor():
 
 class BME680Sensor(BrewSensor):
     def __init__(self, location, interval):
-        import bme680
-
         super().__init__(location, interval)
 
         self.setupSensors()
         self.lastSensorRead = time.time()
 
     def setupSensors(self):
+        import bme680
+
         try:
             self.sensor = bme680.BME680()
             self.sensor.set_humidity_oversample(bme680.OS_2X)
@@ -122,7 +122,7 @@ class BME680Sensor(BrewSensor):
             self.read()
         return self.sensor.data.heat_stable
 
-    def logReadings(self, detailed):
+    def logReadings(self, detailed=True):
         if self.needToUpdateReadings:
             self.read()
 
