@@ -1,0 +1,6 @@
+adafruit-circuitpython-dht==3.6.1
+bme680==1.1.1
+Flask==2.3.2
+# picamera==1.13
+PyYAML==5.4.1
+RPi.GPIO==0.7.0
