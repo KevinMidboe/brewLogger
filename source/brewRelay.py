@@ -4,6 +4,8 @@ from logger import logger
 from utils import getConfig
 import sqlite3
 
+lock = threading.Lock()
+
 try:
     import RPi.GPIO as GPIO
 except ModuleNotFoundError as error:
@@ -31,13 +33,22 @@ class BrewRelay():
     @property
     def state(self):
         query = 'select state from relay where pin = {}'.format(self.pin) 
-        self.cur.execute(query)
-        value = self.cur.fetchone()
 
-        if value is None:
+        try:
+            lock.acquire(True)
+            self.cur.execute(query)
+            value = self.cur.fetchone()
+
+            if value is None:
+                return False
+
+            return True if value[0] == 1 else False
+        except Exception as err:
+            logger.error("Error while getting relay state from db")
+            logger.error(str(err))
             return False
-
-        return True if value[0] == 1 else False
+        finally:
+            lock.release()
 
     @property
     def info(self):
