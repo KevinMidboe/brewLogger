@@ -41,16 +41,16 @@ class BrewSensor():
     def info(self):
         data = {
             'location': self.location,
-            'temperature': "{0:.2f}".format(self.temp),
+            'temperature': round(self.temp, 2),
             'temperature_unit': "°C"
         }
 
         if hasattr(self, 'humidity'):
-            data['humidity'] = "{0:.2f}".format(self.humidity)
+            data['humidity'] = round(self.humidity, 2)
             data['humidity_unit'] = "%RH"
 
         if hasattr(self, 'pressure'):
-            data['pressure'] = "{0:.2f}".format(self.pressure)
+            data['pressure'] = round(self.pressure, 2)
             data['pressure_unit'] = "bar"
 
         return data

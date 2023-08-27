@@ -8,7 +8,6 @@ try:
     import RPi.GPIO as GPIO
 except ModuleNotFoundError as error:
     logger.error('GPIO module not found, install or run program with flag --mock argument!\n')
-    print('mock::', mock, mock == True, mock == 'True')
     if mock == True:
         from mockGPIO import MockGPIO as GPIO
         pass
