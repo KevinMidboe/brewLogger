@@ -75,5 +75,33 @@ def relatState(location):
 
     return relay.info
 
+
+def relayState():
+    tempRelays = [BrewRelay.getRelayByName(relays, 'heating'), BrewRelay.getRelayByName(relays, 'cooling')]
+
+    for relay in tempRelays:
+        if relay.state is False:
+            continue
+        return relay.controls
+    return 'idle'
+
+
+@app.route('/api/regulator')
+def regulatorState():
+    state = relayState()
+    goalTemp = 5
+
+    return {
+         'state': state,
+         'goal': goalTemp
+    }
+
+
+@app.route('/api/regulator/<goal>', methods=['POST'])
+def regulatorGoal(goal):
+    #TODO implement
+   return True
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
