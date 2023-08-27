@@ -33,7 +33,7 @@ class BrewRegulator():
     self.temperatureGoal = temperatureGoal
     self.degreesAllowedToDrift = degreesAllowedToDrift
 
-    self.secondsToDriftSingleDegree = 600
+    self.secondsToDriftSingleDegree = 300
 
     self.poolTemperatureSensorThread = threading.Thread(target=self.poolTemperatureSensorOnInterval, args=())
     self.poolTemperatureSensorThread.daemon = True
