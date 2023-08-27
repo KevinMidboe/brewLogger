@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 # local packages
 import source
 import commandlineArguments
+args = commandlineArguments.parse()
 import loader as loader
 from brewSensor import BrewSensor
 from brewRelay import BrewRelay
@@ -166,7 +167,6 @@ def gracefullyTurnOffRelays():
       relay.set(False)
 
 def main():
-  args = commandlineArguments.parse()
   temp = args.temp
   limit = args.limit
   interval = args.interval
