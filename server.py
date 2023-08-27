@@ -1,23 +1,22 @@
-from sys import argv
 from flask import Flask, request
 
 import source # take a look in source/__init__.py
-#from brewCamera import BrewCamera
 import loader as loader
 from brewSensor import BrewSensor
 from brewRelay import BrewRelay
 
 app = Flask(__name__)
 
-#brewCamera = BrewCamera(20)
 externalPeripherals = loader.load('brew.yaml')
 sensors = externalPeripherals['sensors']
 relays = externalPeripherals['relays']
+
 
 # Health and error handling
 @app.route('/_health')
 def health():
     return 'ok'
+
 
 @app.errorhandler(404)
 def pageNotFound(e):
@@ -26,6 +25,7 @@ def pageNotFound(e):
         'message': str(e)
     }, 404
 
+
 @app.errorhandler(405)
 def methodNotFound(e):
     return {
@@ -33,12 +33,14 @@ def methodNotFound(e):
         'message': str(e)
     }, 405
 
+
 # API routes
 @app.route('/api/sensors')
 def allSensors():
     return {
-        'sensors': [ sensor.info for sensor in sensors ]
+        'sensors': [sensor.info for sensor in sensors]
     }
+
 
 @app.route('/api/sensor/<location>')
 def getSensor(location):
@@ -51,11 +53,13 @@ def getSensor(location):
 
     return sensor.info
 
+
 @app.route('/api/relays')
 def allRelays():
     return {
-        'relays': [ relay.info for relay in relays ]
+        'relays': [relay.info for relay in relays]
     }
+
 
 @app.route('/api/relay/<location>', methods=['GET', 'POST'])
 def relatState(location):
