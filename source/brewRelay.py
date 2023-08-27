@@ -7,7 +7,9 @@ import sqlite3
 try:
     import RPi.GPIO as GPIO
 except ModuleNotFoundError as error:
-    if mock is True:
+    logger.error('GPIO module not found, install or run program with flag --mock argument!\n')
+    print('mock::', mock, mock == True, mock == 'True')
+    if mock == True:
         from mockGPIO import MockGPIO as GPIO
         pass
     else:
@@ -22,6 +24,7 @@ class BrewRelay():
         config = getConfig()
         self.conn = sqlite3.connect(config['database']['name'], check_same_thread=False)
         self.cur = self.conn.cursor()
+        self.addIfMissingFromDB()
 
         GPIO.setup(self.pin, GPIO.OUT)
         self.set(self.state, True)
@@ -30,13 +33,17 @@ class BrewRelay():
     def state(self):
         query = 'select state from relay where pin = {}'.format(self.pin) 
         self.cur.execute(query)
+        value = self.cur.fetchone()
 
-        return True if self.cur.fetchone()[0] == 1 else False
+        if value is None:
+            return False
+
+        return True if value[0] == 1 else False
 
     @property
     def info(self):
         return {
-            'location': self.controls,
+            'controls': self.controls,
             'pin': self.pin,
             'state': self.state
         }
@@ -57,6 +64,16 @@ class BrewRelay():
 
     def toggle(self):
         self.set(not state)
+
+    def addIfMissingFromDB(self):
+        query = 'select state from relay where pin = {}'
+        self.cur.execute(query.format(self.pin))
+        if self.cur.fetchone() is not None:
+            return
+
+        query = 'insert into relay (pin, state, controls) values ({}, {}, "{}")'
+        self.cur.execute(query.format(self.pin, self.state, self.controls))
+        self.conn.commit()
 
     @staticmethod
     def fromYaml(loader, node):
