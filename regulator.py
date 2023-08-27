@@ -114,28 +114,6 @@ class BrewRegulator():
 
     logger.info('Updated fridge state', es={ 'state': self.state })
 
-  # Turns on temperature control and waits until hit goal temperature
-  def chaseTemperature(self):
-    isGoalMet = False
-    self.turnOnTemperatureControl()
-
-    while not isGoalMet:
-      if self.hasMetTemperatureGoal:
-        logger.info("Temperature met, idling", es={
-          'temperature': self.currentTemp,
-          'goal': self.temperatureGoal
-        })
-        isGoalMet = True
-      else:
-        logger.info("Chasing temperature goal", es={
-            'state': self.state,
-            'temperature': self.currentTemp,
-            'goal': self.temperatureGoal
-        })
-        time.sleep(self.poolingInterval)
-
-    self.turnOffTemperatureControl()
-
   def temperatureLossFunction(self):
     # return 6
     return self.degreesAllowedToDrift * self.secondsToDriftSingleDegree
@@ -152,9 +130,33 @@ class BrewRegulator():
 
     time.sleep(timeout)
 
+  def chaseTemperature(self):
+    isGoalMet = False
+
+    # turns on either heating or cooling relay
+    self.turnOnTemperatureControl()
+
+    while not isGoalMet:
+      if self.hasMetTemperatureGoal:
+        logger.info("Temperature met, idling", es={
+          'temperature': self.currentTemp,
+          'goal': self.temperatureGoal
+        })
+        isGoalMet = True
+
+      else:
+        logger.info("Chasing temperature goal", es={
+            'state': self.state,
+            'temperature': self.currentTemp,
+            'goal': self.temperatureGoal
+        })
+        time.sleep(self.poolingInterval)
+
+    # turns of any heating or cooling relay
+    self.turnOffTemperatureControl()
+
   def regulateTemperatureTowardsGoal(self):
     while True:
-      # print('sleeping {}\n- - - - -'.format(self.cooldown))
       if self.withinDeviationLimit:
           self.sustainTemperature()
       else:
