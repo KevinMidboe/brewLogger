@@ -1,5 +1,4 @@
 #!/bin/usr/python3
-
 import logging
 import os
 import json
@@ -19,6 +18,7 @@ class ESHandler(logging.Handler):
     self.host = kwargs.get('host')
     self.port = kwargs.get('port') or 9200
     self.apiKey = kwargs.get('apiKey')
+    self.ssl = kwargs.get('ssl') or False
     self.date = date.today()
     self.sessionID = uuid.uuid4()
 
@@ -27,9 +27,10 @@ class ESHandler(logging.Handler):
   def emit(self, record):
     self.format(record)
     datetimeTemplate = '%Y-%m-%dT%H:%M:%S.%f{}'.format(systemTimezone)
+    protocol = 'https' if self.ssl else 'http'
     timestamp = datetime.fromtimestamp(record.created).strftime(datetimeTemplate)
 
-    indexURL = 'http://{}:{}/{}-{}/_doc'.format(self.host, self.port, LOGGER_NAME, self.date.strftime('%Y.%m'))
+    indexURL = '{}://{}:{}/{}-{}/_doc'.format(protocol, self.host, self.port, LOGGER_NAME, self.date.strftime('%Y.%m'))
     headers = { 'Content-Type': 'application/json', 'User-Agent': 'brewpi-server' }
 
     if self.apiKey:
@@ -104,8 +105,9 @@ if config['elastic']['enabled']:
   esHost = config['elastic']['host']
   esPort = config['elastic']['port']
   esApiKey = config['elastic']['api_key']
+  esSSL = config['elastic']['ssl']
 
-  eh = ESHandler(host=esHost, port=esPort, apiKey=esApiKey)
+  eh = ESHandler(host=esHost, port=esPort, apiKey=esApiKey, ssl=esSSL)
 
   logger.addHandler(eh)
 

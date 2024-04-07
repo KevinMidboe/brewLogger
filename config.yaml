@@ -3,7 +3,8 @@ logger:
   ch_level: INFO
 
 elastic:
-  host: ELASTIC_IP_ADDRESS
+  enabled: True
+  host: elastic.schleppe
   port: 9200
   ssl: True
   api_key: ELASTIC_API_KEY

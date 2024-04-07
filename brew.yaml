@@ -7,20 +7,19 @@ relays:
   controls: heating
   pin: 23
 - !Relay
-  controls: light
+  controls: fan
   pin: 24
+- !Relay
+  controls: light
+  pin: 25
 
 sensors:
-- !mockSensor
-  pin: 15
+- !bme680
   location: inside
   interval: 2
 
-# - !bme680
-#   location: inside
-#   interval: 2
+- !dht11
+  pin: 13
+  location: outside 
+  interval: 10
 
-# - !dht11
-#   pin: 13
-#   location: outside
-#   interval: 30

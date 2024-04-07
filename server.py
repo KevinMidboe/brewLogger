@@ -89,7 +89,7 @@ def relayState():
 @app.route('/api/regulator')
 def regulatorState():
     state = relayState()
-    goalTemp = 5
+    goalTemp = 3
 
     return {
          'state': state,
