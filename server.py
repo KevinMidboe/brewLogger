@@ -73,6 +73,13 @@ def relatState(location):
     if request.method == 'POST':
         relay.set(not relay.state)
 
+        # toggle the other opposing heating/cooling relay if
+        # the other changes. This prevents cooling and
+        # heating running at same time by api request
+        opposingRelay = BrewRelay.getOppositeRelayByName(relays, name)
+        if opposingRelay and opposingRelay.state is True:
+            opposingRelay.set(False)
+
     return relay.info
 
 

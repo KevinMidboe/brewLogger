@@ -91,13 +91,18 @@ class BrewRelay():
         return BrewRelay(**loader.construct_mapping(node))
 
     @staticmethod
-    def getRelayByWhatItControls(relays, controls):
-        return next(( relay for relay in relays if relay.controls == controls), None)
+    def getOppositeRelayByName(relays, name):
+        oppositeRelayName = None
+        if name == 'heating':
+            oppositeRelayName = 'cooling'
+        elif name == 'cooling':
+            oppositeRelayName = 'heating'
+
+        return next((relay for relay in relays if relay.controls == oppositeRelayName), None)
 
     @staticmethod
     def getRelayByName(relays, controls):
-        return next(( relay for relay in relays if relay.controls == controls), None)
+        return next((relay for relay in relays if relay.controls == controls), None)
 
     def __exit__(self):
         self.conn.close()
-
