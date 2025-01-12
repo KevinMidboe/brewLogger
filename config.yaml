@@ -3,6 +3,7 @@ logger:
   ch_level: INFO
 
 elastic:
+  enabled: False
   host: ELASTIC_IP_ADDRESS
   port: 9200
   ssl: True

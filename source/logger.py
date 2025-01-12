@@ -18,6 +18,7 @@ class ESHandler(logging.Handler):
   def __init__(self, *args, **kwargs):
     self.host = kwargs.get('host')
     self.port = kwargs.get('port') or 9200
+    self.ssl = kwargs.get('ssl') or True
     self.apiKey = kwargs.get('apiKey')
     self.date = date.today()
     self.sessionID = uuid.uuid4()
@@ -29,7 +30,8 @@ class ESHandler(logging.Handler):
     datetimeTemplate = '%Y-%m-%dT%H:%M:%S.%f{}'.format(systemTimezone)
     timestamp = datetime.fromtimestamp(record.created).strftime(datetimeTemplate)
 
-    indexURL = 'http://{}:{}/{}-{}/_doc'.format(self.host, self.port, LOGGER_NAME, self.date.strftime('%Y.%m'))
+    protocol = 'https' if self.ssl else 'http'
+    indexURL = '{}://{}:{}/{}-{}/_doc'.format(protocol, self.host, self.port, LOGGER_NAME, self.date.strftime('%Y.%m'))
     headers = { 'Content-Type': 'application/json', 'User-Agent': 'brewpi-server' }
 
     if self.apiKey:
@@ -51,6 +53,7 @@ class ESHandler(logging.Handler):
 
     payload = json.dumps(doc).encode('utf8')
     req = urllib.request.Request(indexURL, data=payload, headers=headers)
+    response = None
     response = urllib.request.urlopen(req)
     response = response.read().decode('utf8')
     return response
@@ -104,8 +107,9 @@ if config['elastic']['enabled']:
   esHost = config['elastic']['host']
   esPort = config['elastic']['port']
   esApiKey = config['elastic']['api_key']
+  esSsl = config['elastic']['ssl']
 
-  eh = ESHandler(host=esHost, port=esPort, apiKey=esApiKey)
+  eh = ESHandler(host=esHost, port=esPort, apiKey=esApiKey, ssl=esSsl)
 
   logger.addHandler(eh)
 
