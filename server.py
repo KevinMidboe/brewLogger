@@ -1,15 +1,18 @@
 from flask import Flask, request
 
-import source # take a look in source/__init__.py
+import source  # take a look in source/__init__.py
 import loader as loader
 from brewSensor import BrewSensor
 from brewRelay import BrewRelay
+from database import BrewDatabase
 
 app = Flask(__name__)
 
 externalPeripherals = loader.load('brew.yaml')
 sensors = externalPeripherals['sensors']
 relays = externalPeripherals['relays']
+db = BrewDatabase()
+getTargetTemperatureQuery = 'select target_temperature from regulator'
 
 
 # Health and error handling
@@ -61,13 +64,13 @@ def allRelays():
     }
 
 
-@app.route('/api/relay/<location>', methods=['GET', 'POST'])
-def relatState(location):
-    relay = BrewRelay.getRelayByWhatItControls(relays, location)
+@app.route('/api/relay/<name>', methods=['GET', 'POST'])
+def relay(name):
+    relay = BrewRelay.getRelayByName(relays, name)
     if not relay:
         return {
             'success': False,
-            'message': 'relay {} not found, check /relays'.format(location)
+            'message': 'relay {} not found, check /relays'.format(name)
         }
 
     if request.method == 'POST':
@@ -84,7 +87,8 @@ def relatState(location):
 
 
 def relayState():
-    tempRelays = [BrewRelay.getRelayByName(relays, 'heating'), BrewRelay.getRelayByName(relays, 'cooling')]
+    tempRelays = [BrewRelay.getRelayByName(
+        relays, 'heating'), BrewRelay.getRelayByName(relays, 'cooling')]
 
     for relay in tempRelays:
         if relay.state is False:
@@ -96,18 +100,30 @@ def relayState():
 @app.route('/api/regulator')
 def regulatorState():
     state = relayState()
-    goalTemp = 5
+    goalTemp = db.get(getTargetTemperatureQuery)
 
     return {
-         'state': state,
-         'goal': goalTemp
+        'state': state,
+        'goal': goalTemp
     }
 
 
 @app.route('/api/regulator/<goal>', methods=['POST'])
 def regulatorGoal(goal):
-    #TODO implement
-   return True
+    query = 'update regulator set target_temperature = {}'
+    query = query.format(goal)
+    success = db.write(query)
+
+    if not success:
+        return {
+            'success': False,
+            'message': 'unable to set target temperature'
+        }, 500
+
+    return {
+        'success': True,
+        'message': 'set target temperature to {}'.format(goal)
+    }
 
 
 if __name__ == '__main__':

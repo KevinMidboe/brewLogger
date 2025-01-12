@@ -1,21 +1,22 @@
 from __init__ import mock
 
 from logger import logger
-from utils import getConfig
-import sqlite3
-import threading
+from database import BrewDatabase
 
-lock = threading.Lock()
+db = BrewDatabase()
 
 try:
     import RPi.GPIO as GPIO
 except ModuleNotFoundError as error:
-    logger.error('GPIO module not found, install or run program with flag --mock argument!\n')
     if mock == True:
+        logger.warning('GPIO module not found, running with mock sensors.\n')
         from mockGPIO import MockGPIO as GPIO
         pass
     else:
+        logger.error(
+            'GPIO module not found, install or run program with flag --mock argument!\n')
         raise error
+
 
 class BrewRelay():
     def __init__(self, pin, controls):
@@ -23,9 +24,6 @@ class BrewRelay():
         self.pin = pin
         self.controls = controls
 
-        config = getConfig()
-        self.conn = sqlite3.connect(config['database']['name'], check_same_thread=False)
-        self.cur = self.conn.cursor()
         self.addIfMissingFromDB()
 
         GPIO.setup(self.pin, GPIO.OUT)
@@ -33,23 +31,13 @@ class BrewRelay():
 
     @property
     def state(self):
-        query = 'select state from relay where pin = {}'.format(self.pin) 
+        query = 'select state from relay where pin = {}'.format(self.pin)
 
-        try:
-            lock.acquire(True)
-            self.cur.execute(query)
-            value = self.cur.fetchone()
-
-            if value is None:
-                return False
-
-            return True if value[0] == 1 else False
-        except Exception as err:
-            logger.error("Error while getting relay state from db")
-            logger.error(str(err))
+        value = db.get(query)
+        if value is None:
             return False
-        finally:
-            lock.release()
+
+        return True if value == 1 else False
 
     @property
     def info(self):
@@ -61,15 +49,17 @@ class BrewRelay():
 
     def saveStateToDB(self, state):
         query = 'update relay set state = {} where pin = {}'
-        self.cur.execute(query.format(state, self.pin))
-        self.conn.commit()
+        query = query.format(state, self.pin)
+        db.write(query)
 
     def set(self, state, setup=False):
-        GPIO.output(self.pin, not state) # for some reason this is negated
+        GPIO.output(self.pin, not state)  # for some reason this is negated
         if setup is False:
-            logger.info('Relay toggled', es={'relayState': state, 'relayType': self.controls})
+            logger.info('Relay toggled', es={
+                        'relayState': state, 'relayType': self.controls})
         else:
-            logger.info('Resuming relay state', es={'relayState': state, 'relayType': self.controls})
+            logger.info('Resuming relay state', es={
+                        'relayState': state, 'relayType': self.controls})
 
         self.saveStateToDB(state)
 
@@ -78,13 +68,14 @@ class BrewRelay():
 
     def addIfMissingFromDB(self):
         query = 'select state from relay where pin = {}'
-        self.cur.execute(query.format(self.pin))
-        if self.cur.fetchone() is not None:
+        query = query.format(self.pin)
+        value = db.get(query)
+        if value is not None:
             return
 
         query = 'insert into relay (pin, state, controls) values ({}, {}, "{}")'
-        self.cur.execute(query.format(self.pin, self.state, self.controls))
-        self.conn.commit()
+        query = query.format(self.pin, self.state, self.controls)
+        db.write(query)
 
     @staticmethod
     def fromYaml(loader, node):
